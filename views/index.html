@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rule Engine</title>
+    <style>
+        /* Base Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #c9d6ff, #e2e2e2); /* Light blue to light grey gradient */
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .tree-node {
+            display: inline-block;
+            text-align: center;
+            margin: 10px;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1; /* Make nodes visible initially */
+        }
+
+        .tree-node.fade-in {
+            opacity: 1;
+        }
+
+        .operator-node {
+            background-color: #ffeb3b;
+            border: 2px solid #fbc02d;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .operand-node {
+            background-color: #8bc34a;
+            border: 2px solid #689f38;
+            padding: 8px;
+            border-radius: 5px;
+        }
+
+        .children {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            flex-wrap: wrap; /* Wraps children if they exceed container width */
+        }
+
+        .node-content {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            transform: scale(0.9);
+            animation: fadeInScale 0.6s ease forwards;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #1e3a8a; /* Dark blue */
+            margin: 0 0 15px;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards;
+        }
+
+        /* Form Styles */
+        form div, form label {
+            display: block;
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        form input[type="text"], form textarea, form select {
+            width: 100%;
+            padding: 10px;
+            margin: 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: box-shadow 0.3s;
+        }
+
+        form textarea {
+            height: 100px;
+        }
+
+        form input[type="text"]:focus, form textarea:focus, form select:focus {
+            box-shadow: 0 0 6px rgba(30, 58, 138, 0.3); /* Dark blue shadow */
+            border-color: #1e3a8a;
+        }
+
+        form button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            border: none;
+            background-color: #1e3a8a; /* Dark blue button */
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        form button:hover {
+            background-color: #2b51b3; /* Lighter blue on hover */
+            transform: scale(1.03);
+        }
+
+        pre {
+            background-color: #f9f9fb;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            animation: fadeInUp 1.2s ease forwards;
+            opacity: 0;
+        }
+
+        .rule-container {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #f7f9fc;
+            margin-bottom: 10px;
+            animation: fadeInUp 0.8s ease forwards;
+            opacity: 0;
+        }
+
+        #add-rule {
+            margin-top: 10px;
+            background-color: #d1e0ff; /* Light blue background for add button */
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        #add-rule:hover {
+            background-color: #b3ccff;
+            transform: scale(1.05);
+        }
+
+        /* Tree Container Styles */
+        #tree-container {
+            max-width: 100%;
+            overflow-x: auto; /* Enable horizontal scrolling */
+            text-align: center;
+            padding: 10px;
+            margin: 20px auto;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9; /* Light background for visibility */
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            form input[type="text"], form textarea, form select {
+                padding: 8px;
+            }
+
+            form button {
+                padding: 8px;
+                font-size: 14px;
+            }
+
+            form textarea {
+                height: 80px;
+            }
+        }
+
+        /* Animation Styles */
+        @keyframes fadeInScale {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rule Engine with AST</h1>
+        
+        <h2>Create Rule</h2>
+        <form id="create-rule-form">
+            <div>
+                <label for="ruleName">Rule Name:</label>
+                <input type="text" id="ruleName" name="ruleName" required>
+            </div>
+            <div>
+                <label for="ruleString">Rule:</label>
+                <input type="text" id="ruleString" name="ruleString" required>
+            </div>
+            <button type="submit">Create Rule</button>
+        </form>
+        <pre id="create-rule-result"></pre>
+
+        <h2>Combine Rules</h2>
+        <form id="combine-rules-form">
+            <h3>Enter Rules to Combine:</h3>
+            <div id="rules-inputs">
+                <div class="rule-container">
+                    <label for="combine-rule1">Rule 1:</label>
+                    <input type="text" id="combine-rule1" name="rule1" required>
+                    <label for="operator1">Operator:</label>
+                    <select id="operator1" name="operator1">
+                        <option value="AND">AND</option>
+                        <option value="OR">OR</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" id="add-rule">Add Another Rule</button>
+            <button type="submit">Combine Rules</button>
+        </form>
+        <pre id="combine-rules-result"></pre>
+
+        <h2>Evaluate Rule</h2>
+        <form id="evaluate-rule-form">
+            <div>
+                <label for="evaluate-ast">Rule Name:</label>
+                <input type="text" id="evaluate-ast" name="ast" required>
+            </div>
+            <div>
+                <label for="evaluate-data">Data JSON:</label>
+                <textarea id="evaluate-data" name="data" required></textarea>
+            </div>
+            <button type="submit">Evaluate Rule</button>
+        </form>
+        <pre id="evaluate-rule-result"></pre>
+        
+        <!-- Combined Rules Tree Container -->
+        <div id="tree-container">
+            <div id="combined-rules-tree"></div>
+        </div>
+    </div>
+
+    <script>
+        function generateTreeHTML(node) {
+            if (!node) return '';
+    
+            const nodeClass = node.type === 'operator' ? 'operator-node' : 'operand-node';
+            const content = node.type === 'operator' ? node.operator : `${node.key} ${node.operator} ${node.value}`;
+    
+            let html = `<div class="tree-node ${nodeClass}">
+                            <span class="node-content">${content}</span>`;
+    
+            if (node.left || node.right) {
+                html += `<div class="children">`;
+                if (node.left) {
+                    html += generateTreeHTML(node.left);
+                }
+                if (node.right) {
+                    html += generateTreeHTML(node.right);
+                }
+                html += `</div>`;
+            }
+    
+            html += `</div>`;
+            return html;
+        }
+
+        function displayTree(tree) {
+            const treeHTML = generateTreeHTML(tree);
+            const treeContainer = document.getElementById('combined-rules-tree');
+            treeContainer.innerHTML = treeHTML;
+
+            setTimeout(() => {
+                document.querySelectorAll('.tree-node').forEach(node => {
+                    node.classList.add('fade-in');
+                });
+            }, 100);
+        }
+
+        
+        // Handle Create Rule form submission
+        document.getElementById('create-rule-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const ruleName = document.getElementById('ruleName').value;
+            const ruleString = document.getElementById('ruleString').value;
+            const response = await fetch('/api/rules/create_rule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ruleName, ruleString }),
+            });
+            const result = await response.json();
+            let treeHTML = generateTreeHTML(result.ruleAST);
+            treeHTML += `<br><p>Rule Name: ${result.ruleName}</p>`;
+            document.getElementById('create-rule-result').innerHTML = treeHTML;
+        });
+    
+        // Handle Combine Rules form submission
+        document.getElementById('combine-rules-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const op = document.getElementById('operator1').value;
+            const rules = Array.from(document.querySelectorAll('input[id^="combine-rule"]')).map(input => input.value);
+            const response = await fetch('/api/rules/combine_rules', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ rules, op }),
+            });
+            const result = await response.json();
+            let treeHTML = generateTreeHTML(result.ruleAST);
+            treeHTML += `<br><p>Rule Name: ${result.ruleName}</p>`;
+            document.getElementById('combine-rules-result').innerHTML = treeHTML;
+        });
+    
+        // Add functionality to dynamically add more rule inputs
+        document.getElementById('add-rule').addEventListener('click', function() {
+            const ruleInputContainer = document.createElement('div');
+            ruleInputContainer.classList.add('rule-container');
+            const ruleCount = document.querySelectorAll('input[id^="combine-rule"]').length + 1;
+            ruleInputContainer.innerHTML = `
+                <label for="combine-rule${ruleCount}">Rule ${ruleCount}:</label>
+                <input type="text" id="combine-rule${ruleCount}" name="rule${ruleCount}" required>
+            `;
+            document.getElementById('rules-inputs').appendChild(ruleInputContainer);
+            this.remove();
+        });
+    
+        // Handle Evaluate Rule form submission
+        document.getElementById('evaluate-rule-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const ast = document.getElementById('evaluate-ast').value;
+            const data = document.getElementById('evaluate-data').value;
+            const response = await fetch('/api/rules/evaluate_rule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ast, data: JSON.parse(data) }),
+            });
+            const result = await response.json();
+            document.getElementById('evaluate-rule-result').textContent = JSON.stringify(result, null, 2);
+        });
+    </script>
+    
+</body>
+</html>
+
+

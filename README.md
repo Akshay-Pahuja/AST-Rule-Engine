@@ -29,7 +29,7 @@ This application is a rule engine that determines user eligibility based on attr
 
 1. **Clone the Repository**
    ```bash
-   https://github.com/21BCS035/Rule-Engine-with-AST.git
+   https://github.com/Akshay-Pahuja/AST-Rule-Engine.git
    cd Rule-Engine-With-AST-Main
    ```
 
